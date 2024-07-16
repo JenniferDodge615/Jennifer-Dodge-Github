@@ -1,0 +1,24 @@
+/*Calculate the percent of days covered using RX data. Answer the question: What percentage of my patients have medication on hand for 80% of days?*/
+
+select a.period_end
+, a.num
+, b.denom
+, cast(a.num as decimal(12,6))/cast(b.denom as decimal(12,6)) as rate
+from
+	(select x.period_end
+		, count(distinct x.patient_id) as num
+		from population x
+		join store y on x.attributed_npi=y.npic_nbr
+		where x.pdc_rate>=0.8
+		and x.performance_period='YTD'
+		and x.measure_id in ('Cholesterol PDC','RASA PDC','Diabetes PDC')
+		group by x.period_end) a
+left join
+	(select x.period_end
+		, count(distinct x.patient_id) as denom
+		from population x
+		join store y on x.attributed_npi=y.npic_nbr
+		where x.performance_period='YTD'
+		and x.measure_id in ('Cholesterol PDC','RASA PDC','Diabetes PDC')
+		group by x.period_end) b
+on a.period_end=b.period_end;
