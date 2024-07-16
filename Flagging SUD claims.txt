@@ -1,0 +1,294 @@
+libname claims "&myfiles_root/dua_054105/Report21/claims_data/";***Current report;
+libname input "&MYFILES_ROOT./dua_054105/Report21/input_files";
+libname bi "&MYFILES_ROOT./dua_054105/Output/Analysis/BI";
+
+ 
+%LET DATA_VERSION = 2022_03; *** Data Pull TimeStamp from 0-Version ***;
+%let report=r21;
+%let rpt_sfx=Report21;
+%let user_lib=SH054105;
+
+/* Start timer */
+%let _timer_start = %sysfunc(datetime());
+
+%let diag_codes = "F10", "F11", "F12", "F13", "F14", "F15",
+"F16", "F18", "F19", "F55", "R78", "Z71";
+
+/*CARRIER*/
+data carrier_temp ;
+set claims._base_&data_version._carrier;
+if substr(prncpal_dgns_cd,1,3) in (&diag_codes.) then sud=1;
+array dx {12} icd_dgns_cd1 - icd_dgns_cd12;
+do i=1 to 12;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+
+data carrier_temp_id (keep=clm_id bene_id clm_from_dt clm_thru_dt);
+set carrier_temp;
+where sud= 1;
+run;
+
+proc delete data=carrier_temp;
+run;
+
+
+/********************************************************************/
+/*CARRIER_LINE*/
+
+data carrier_line_temp ;
+set claims._base_&data_version._carrier_line;
+if substr(line_icd_dgns_cd,1,3) in (&diag_codes.) then sud=1;
+run;
+
+data carrier_line_temp_id (keep=clm_id bene_id clm_thru_dt);
+set carrier_line_temp;
+where sud = 1;
+run;
+
+data test;
+set carrier_line_temp_id;
+where bene_id=384193663;
+run;
+
+proc delete data=carrier_line_temp;
+run;
+
+
+/*DME*/
+
+data dme_temp ;
+set claims._base_&data_version._dme;
+if substr(prncpal_dgns_cd,1,3) in (&diag_codes.) then sud=1;
+array dx {12} icd_dgns_cd1 - icd_dgns_cd12;
+do i=1 to 12;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+data dme_temp_id (keep=clm_id bene_id clm_thru_dt);
+set dme_temp;
+where sud = 1;
+run;
+
+proc delete data=work.dme_temp;
+run;
+
+
+/*DME_LINE*/
+
+
+data dme_line_temp;
+set claims._base_&data_version._dme_line;
+if substr(line_icd_dgns_cd,1,3) in (&diag_codes.) then sud=1;
+run;
+
+data dme_line_temp_id (keep=clm_id bene_id clm_thru_dt);
+set dme_line_temp;
+where sud = 1;
+run;
+
+proc delete data=dme_line_temp;
+run;
+
+/*HHA*/
+
+
+data hha_temp;
+set claims._base_&data_version._hha;
+if substr(prncpal_dgns_cd,1,3) in (&diag_codes.) then sud=1;
+array dx1 {25} icd_dgns_cd1 - icd_dgns_cd25;
+do i=1 to 25;
+if substr(dx1{i},1,3) in (&diag_codes.) then sud=1;
+end;
+if substr(FST_DGNS_E_CD,1,3) in (&diag_codes.) then sud=1;
+array dx2 {12} ICD_DGNS_E_CD1 - ICD_DGNS_E_CD12;
+do i=1 to 12;
+if substr(dx2{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+data hha_temp_id (keep=clm_id bene_id clm_thru_dt clm_from_dt);
+set hha_temp;
+where sud=1;
+run;
+
+proc delete data=hha_temp;
+run;
+
+
+/*HOSPICE*/
+
+data hospice_temp;
+set claims._base_&data_version._hospice;
+if PRNCPAL_DGNS_CD in (&diag_codes.) then sud=1;
+array dx {25} icd_dgns_cd1 - icd_dgns_cd25;
+do i=1 to 25;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+if FST_DGNS_E_CD in (&diag_codes.) then sud=1; 
+array dxe {12} ICD_DGNS_E_CD1 - ICD_DGNS_E_CD12;
+do i=1 to 12;
+if substr(dxe{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+data hospice_temp_id (keep= clm_id bene_id clm_thru_dt );
+set hospice_temp;
+where sud=1;
+run;
+
+proc delete data=hospice_temp;
+run;
+
+
+/*INPATIENT*/
+
+data ip_temp;
+set claims._base_&data_version._inpatient;
+if substr(PRNCPAL_DGNS_CD,1,3) in (&diag_codes.) then sud=1;
+array dx {25} icd_dgns_cd1 - icd_dgns_cd25;
+do i=1 to 25;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+if FST_DGNS_E_CD in (&diag_codes.) then sud=1; 
+array dxe {12} ICD_DGNS_E_CD1 - ICD_DGNS_E_CD12;
+do i=1 to 12;
+if substr(dxe{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+data ip_temp_id (keep=clm_id bene_id clm_thru_dt );
+set ip_temp;
+where sud=1;
+run;
+
+proc delete data=ip_temp;
+run;
+
+
+/*OUTPATIENT*/
+data op_temp;
+set claims._base_&data_version._outpatient;
+if substr(PRNCPAL_DGNS_CD,1,3) in (&diag_codes.) then sud=1;
+array dx {25} icd_dgns_cd1 - icd_dgns_cd25;
+do i=1 to 25;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+if FST_DGNS_E_CD in (&diag_codes.) then sud=1; 
+array dxe {12} ICD_DGNS_E_CD1 - ICD_DGNS_E_CD12;
+do i=1 to 12;
+if substr(dxe{i},1,3) in (&diag_codes.) then sud=1;
+end;
+run;
+
+data op_temp_id (keep=clm_id bene_id clm_thru_dt );
+set op_temp;
+where sud=1;
+run;
+
+proc delete data=op_temp;
+run;
+
+/*SNF*/
+
+
+data snf_temp;
+set claims._base_&data_version._snf;
+if substr(PRNCPAL_DGNS_CD,1,3) in (&diag_codes.) then sud=1;
+array dx {25} icd_dgns_cd1 - icd_dgns_cd25;
+do i=1 to 25;
+if substr(dx{i},1,3) in (&diag_codes.) then sud=1;
+end;
+if FST_DGNS_E_CD in (&diag_codes.) then sud=1; 
+array dxe {12} ICD_DGNS_E_CD1 - ICD_DGNS_E_CD12;
+do i=1 to 12;
+if substr(dxe{i},1,3) in (&diag_codes.) then sud=1;
+end;
+;
+run;
+
+data snf_temp_id (keep=clm_id bene_id clm_thru_dt );
+set snf_temp;
+where sud=1;
+run;
+
+proc delete data=snf_temp;
+run;
+
+
+/*put this in the claims pull lib*/
+
+proc sql;
+create table claims.sud_claims_&report. as
+select distinct clm_id, bene_id, clm_thru_dt
+from 
+	(select clm_id, bene_id, clm_thru_dt from carrier_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from carrier_line_temp_id
+	union all 
+	select clm_id, bene_id, clm_thru_dt from dme_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from dme_line_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from hha_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from hospice_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from ip_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from op_temp_id
+	union all
+	select clm_id, bene_id, clm_thru_dt from snf_temp_id);
+	quit;
+
+proc sql;
+create table years as
+select  a.clm_id, a.clm_thru_dt, a.bene_id
+,cat(year(a.clm_thru_dt),qtr(a.clm_thru_dt)) as yearquarter
+from claims.sud_claims_&report. a
+;
+quit;
+
+proc sql;
+create table sud1 as
+select a.bene_id, a.clm_id, 
+b.cpc_plus_practice_id,
+a.yearquarter
+from years a
+left join sh054105.attr_file_merged_REPORT21 b on
+a.bene_id = b.bene_id and a.yearquarter = cat(b.year,b.quarter)
+where b.selected = 'Y' and b.active_flag = 'Y';
+;
+
+create table sud2 as
+select a.bene_id, a.clm_id, b.cpc_plus_practice_id,
+a.yearquarter
+from years a
+left join input.attrib_2017q1_21q4 b on
+a.bene_id = b.bene_id and 
+substr(a.yearquarter,1,4) = substr(b.yearquarter,1,4)
+and substr(a.yearquarter,5,1) = substr(b.yearquarter,7,1)
+where b.selected = 'Y' and b.active_flag = 'Y'
+ 
+
+
+;
+quit;
+
+proc sql;
+create table bi.SUD_Final_&report. as
+select distinct cpc_plus_practice_id, bene_id, yearquarter from sud1 a
+union
+select distinct cpc_plus_practice_id,bene_id, yearquarter from sud2;
+quit;
+
+
+
+
+/* Stop timer */
+data _null_;
+  dur = datetime() - &_timer_start;
+  put 30*'-' / ' TOTAL DURATION:' dur time13.2 / 30*'-';
+run;
