@@ -1,0 +1,97 @@
+
+--drop table step1;
+create multiset volatile table step1 as
+(
+select distinct
+ASF.rxc_ptnt_id
+, ASF.prscrt_fill_id
+, ASF.ndc
+, ASF.RX_NBR
+, ASF.RX_FILL_NBR
+, ASF.STORE_NBR
+, ASF.agncy_typ_cd
+, ASF.plan_id
+, agncy.PLAN_NBR
+, ASF.fill_dt
+, ASF.fill_date
+, CASE
+	WHEN CAST(ASF.FILL_DT AS DATE) <= CAST(ASF.POS_TRNCT_DT AS DATE) THEN ASF.FILL_DT --KEEP FILL DATE IF CORRECT - ON SAME DATE AS OR BEFORE POS DATE
+	WHEN CAST(ASF.FILL_DT AS DATE) > CAST(ASF.POS_TRNCT_DT AS DATE) --FILL DATE INCORRECTLY AFTER POS DATE
+	AND CAST(WF.ACTIVITY_DT AS DATE) <= CAST(ASF.POS_TRNCT_DT AS DATE) --ACTIVITY DATE BEFORE POS DATE
+	THEN WF.ACTIVITY_DT --USE ACTIVITY DATE IF FILL DATE IS INCORRECT
+		ELSE ASF.FILL_DT
+		END AS FILL_DT_FIX
+,CASE WHEN ASF.POS_TRNCT_DT IS NOT NULL AND ASF.RX_FILL_STATUS_CODE_ID = 7 THEN 1 ELSE 0 END AS PICKED_UP_IND
+FROM IDW_RX_OPERATIONS_S_BC.SEM_FACT_ALL_SCRIPT_FILL ASF
+LEFT JOIN IDW_RX_OPERATIONS_S_BC.SEM_FACT_WC_RX_FILL_EMP_WF AS WF
+		ON ASF.PRSCRT_FILL_ID = WF.PRSCRT_FILL_ID
+			AND WF.ACTIVITY_ID = 4 --4 IS "Verification Completed"
+			AND CAST(ASF.FILL_DT AS DATE) > CAST(ASF.POS_TRNCT_DT AS DATE) --FILL DATE ON ASF IS GREATER THAN POS DATE
+			AND CAST(WF.ACTIVITY_DT AS DATE) <= CAST(ASF.POS_TRNCT_DT AS DATE) --ACTIVITY DATE ON SAME DATE OR PRIOR
+INNER JOIN PATIENT_LIST pop on ASF.rxc_ptnt_id=pop.rxc_ptnt_id -- limit population
+INNER JOIN IDW_MANAGED_CARE_S_BC.PLAN_AGENCY AGNCY
+ON AGNCY.PLAN_ID = ASF.PLAN_ID
+AND ASF.FILL_DT(DATE) BETWEEN agncy.REC_EFF_DT(DATE) AND AGNCY.REC_END_DT(DATE)
+JOIN STORE S
+ON ASF.STORE_NBR = S.STORE_NBR AND S.curr_ind = 'Y'
+where cast(ASF.fill_dt as date) > date '2024-05-01' 
+QUALIFY ROW_NUMBER() OVER(PARTITION BY ASF.PRSCRT_FILL_ID ORDER BY FILL_DT_FIX DESC) = 1 --deduplication
+)
+WITH DATA PRIMARY INDEX(rxc_ptnt_id
+, prscrt_fill_id
+, ndc
+, RX_NBR
+, RX_FILL_NBR
+, STORE_NBR)
+ON COMMIT PRESERVE ROWS
+;
+
+--For Tableau - data back to 5/01
+--drop table step2;
+create multiset volatile table step2 as
+(select a.fill_date
+	, COUNT(DISTINCT(a.RX_NBR||a.RX_FILL_NBR||a.STORE_NBR)) as p4p_rx
+from step1 a
+where a.ndc in (select ndc from NDC_CURRENT) and a.picked_up_ind=1
+group by a.fill_date)
+WITH DATA PRIMARY INDEX(fill_date) 
+ON COMMIT PRESERVE ROWS;
+
+--drop table step3;
+create multiset volatile table step3 as
+(select a.fill_date
+	, COUNT(DISTINCT(a.RX_NBR||a.RX_FILL_NBR||a.STORE_NBR)) as cdc_rx
+from step1 a
+where a.ndc in (select ndc from NDC_CURRENT) and a.picked_up_ind=1 and a.agncy_typ_cd=27
+group by a.fill_date)
+WITH DATA PRIMARY INDEX(fill_date) 
+ON COMMIT PRESERVE ROWS;
+
+--drop table step4;
+create multiset volatile table step4 as
+(
+	select a.fill_date
+		, b.cdc_rx
+		, a.p4p_rx
+from step2 a
+left join step3 b on a.fill_date=b.fill_date
+)
+with data primary index(fill_date)
+on commit preserve rows;
+
+--drop table results;
+CREATE MULTISET TABLE results as
+(
+select fill_date
+	, cdc_rx
+	, p4p_rx
+	, cast(cdc_rx as decimal(15,6)) /cast(p4p_rx as decimal(15,6)) as rate
+from step4
+)
+WITH DATA PRIMARY INDEX(fill_date);
+
+--To enter z-scores/p-values
+select * from pvalues;
+
+insert pvalues 
+values('2023-08-14 00:00:00.000000',-5.6684,0.00001,285,436,238800,238079);
