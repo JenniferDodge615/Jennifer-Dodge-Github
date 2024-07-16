@@ -1,8 +1,6 @@
 /*proc datasets lib=work kill;*/
 /*run;*/
 
-/*%symdel;*/
-%include "\\aws-coremgmt-filer1.OPHD.onpointhd.org\PCCOMMON\Clients\vt\VT DVHA (VTVHA)\Analytics\Scheduled\Year End Evaluation - CY19\Code\Annual Evaluation Measures\00 Prep.sas";
 
 /********************************************
 ACG HEALTH STATUS (RUB CATEGORIES) VHCURES ALL PRODUCT TYPES
