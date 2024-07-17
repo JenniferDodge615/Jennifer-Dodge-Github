@@ -1,7 +1,10 @@
+/*This program is part of a larger project that uses macros to examine healthcare utilization rates with risk adjustment*/
+
 /*05_2 Utilization Measures_RA*/
-/**/
-/*proc datasets lib=work kill;*/
-/*run;*/
+
+proc datasets lib=work kill;
+run;
+
 /* Start timer */
 %let _timer_start = %sysfunc(datetime());
 
@@ -15,9 +18,6 @@
 %let group='STATEWIDE';
 %let hsa_num=1;
 %let hsa='ALL';
-
-%include "\\aws-coremgmt-filer1.OPHD.onpointhd.org\PCCOMMON\Clients\vt\VT DVHA (VTVHA)\Analytics\Scheduled\Year End Evaluation - CY19\Code\Annual Evaluation Measures\00 Prep.sas";
-
 
 /*prep PQI92 dataset*/
 DATA PQI92 ; 
