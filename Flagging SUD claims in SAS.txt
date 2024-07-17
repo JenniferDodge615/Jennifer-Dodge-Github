@@ -49,11 +49,6 @@ set carrier_line_temp;
 where sud = 1;
 run;
 
-data test;
-set carrier_line_temp_id;
-where bene_id=384193663;
-run;
-
 proc delete data=carrier_line_temp;
 run;
 
