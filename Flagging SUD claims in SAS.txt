@@ -1,3 +1,5 @@
+/*This program loops through a series of claims files and flags those with diagnosis codes for substance use disorder (SUD)*/
+
 libname claims "&myfiles_root/dua_054105/Report21/claims_data/";***Current report;
 libname input "&MYFILES_ROOT./dua_054105/Report21/input_files";
 libname bi "&MYFILES_ROOT./dua_054105/Output/Analysis/BI";
